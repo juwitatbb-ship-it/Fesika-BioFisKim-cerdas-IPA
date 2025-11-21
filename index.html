@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tebak Tebakan IPA — Quiz Sains</title>
+  <style>
+    :root{--bg:#0b1220;--card:#0f1724;--accent:#60a5fa;--muted:#94a3b8;--success:#10b981;--danger:#ef4444}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:0;min-height:100vh;background:linear-gradient(180deg,#071427 0%,#041221 100%);color:#e6eef8;display:flex;align-items:center;justify-content:center;padding:20px}
+    .wrap{width:100%;max-width:920px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:20px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+    header{display:flex;align-items:center;justify-content:space-between}
+    h1{font-size:20px;margin:0}
+    .meta{color:var(--muted);font-size:13px}
+    .top{display:flex;gap:10px;align-items:center;margin-top:12px}
+    .chip{background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:999px;font-weight:700;color:var(--muted)}
+    .questionBox{margin-top:16px;padding:18px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
+    .qtext{font-size:18px;margin-bottom:12px}
+    .choices{display:flex;flex-direction:column;gap:10px}
+    .choice{padding:12px;border-radius:8px;background:rgba(255,255,255,0.03);cursor:pointer;font-weight:700;border:1px solid transparent}
+    .choice.correct{background:linear-gradient(90deg,var(--success),#86efac);color:#022;}
+    .choice.wrong{background:rgba(255,255,255,0.01);opacity:0.5}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    button{padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:#04283a;font-weight:800;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted);font-size:14px}
+    .small{font-size:13px;color:var(--muted)}
+    .progress{height:8px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,#60a5fa,#10b981);width:0%;transition:width .25s}
+    @media(max-width:720px){.qtext{font-size:16px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div>
+          <h1>Tebak Tebakan IPA — Quiz Sains</h1>
+          <div class="meta">Latihan singkat: Biologi, Fisika, Kimia — cocok untuk siswa SD/SMP/SMA</div>
+        </div>
+        <div class="top">
+          <div class="chip">Skor: <span id="score">0</span></div>
+          <div class="chip">Highscore: <span id="hs">0</span></div>
+          <div class="chip">Soal: <span id="index">0</span>/<span id="total">0</span></div>
+        </div>
+      </header>
+
+      <div style="margin-top:12px;display:flex;gap:12px;align-items:center;justify-content:space-between">
+        <div class="small">Kategori:</div>
+        <div>
+          <select id="category" class="ghost" style="padding:8px;border-radius:8px;background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)">
+            <option value="all">Semua</option>
+            <option value="biologi">Biologi</option>
+            <option value="fisika">Fisika</option>
+            <option value="kimia">Kimia</option>
+          </select>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button id="start">Mulai</button>
+          <button id="resetHS" class="ghost">Reset Highscore</button>
+        </div>
+      </div>
+
+      <div class="questionBox">
+        <div class="qtext" id="qtext">Tekan "Mulai" untuk memulai kuis.</div>
+
+        <div class="choices" id="choices"></div>
+
+        <div class="controls">
+          <button id="skip" class="ghost">Lewati</button>
+          <button id="hint" class="ghost">Petunjuk (- poin)</button>
+          <button id="next" class="ghost">Berikutnya</button>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+          <div style="width:220px" class="progress"><i id="timeBar"></i></div>
+          <div class="small" id="timeText">--</div>
+          <div style="margin-left:auto" class="small">Kesempatan: <span id="tries">3</span></div>
+        </div>
+
+        <div style="margin-top:10px" class="small" id="explain"></div>
+      </div>
+
+      <div class="footer">
+        <div class="small">Gunakan angka 1-4 untuk cepat memilih jawaban. Tekan H untuk petunjuk.</div>
+        <div>
+          <button id="export" class="ghost">Ekspor Hasil (CSV)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const QUESTIONS = [
+      // Biologi
+      {q:'Apa fungsi daun pada tumbuhan?', choices:['Menyerap air','Menghasilkan makanan melalui fotosintesis','Menyimpan biji','Menopang akar'], a:1, cat:'biologi', explanation:'Daun mengandung klorofil untuk fotosintesis.'},
+      {q:'Organ tubuh yang menyaring darah di ginjal adalah?', choices:['Nefron','Alveolus','Neuron','Hepatosit'], a:0, cat:'biologi', explanation:'Nefron adalah unit fungsional ginjal.'},
+      {q:'Manakah yang termasuk organisme uniseluler?', choices:['Amoeba','Kucing','Pohon','Cacing'], a:0, cat:'biologi', explanation:'Amoeba adalah organisme sel tunggal.'},
+      {q:'Apa nama proses perubahan ratu lebah menjadi ratu?', choices:['Metamorfosis sempurna','Diferensiasi','Metamorfosis tidak sempurna','Fermentasi'], a:1, cat:'biologi', explanation:'Diferensiasi sel mempengaruhi perkembangan kasta.'},
+      {q:'Bagian bunga yang menghasilkan serbuk sari disebut?', choices:['Ovarium','Stamen (benang sari)','Pistil','Kelopak'], a:1, cat:'biologi', explanation:'Stamen atau benang sari menghasilkan pollen.'},
+
+      // Fisika
+      {q:'Satuan SI untuk gaya adalah?', choices:['Newton (N)','Watt (W)','Pascal (Pa)','Joule (J)'], a:0, cat:'fisika', explanation:'Gaya diukur dalam Newton.'},
+      {q:'Apa yang dimaksud dengan gesekan?', choices:['Gaya tarik antara dua benda yang bergerak relatif','Gaya yang mempercepat benda','Perubahan energi menjadi panas','Energi potensial'], a:0, cat:'fisika', explanation:'Gesekan menentang gerakan relatif permukaan.'},
+      {q:'Cermin cekung menghasilkan bayangan yang?', choices:['Selalu maya','Bisa nyata atau maya tergantung jarak objek','Selalu nyata','Tidak membentuk bayangan'], a:1, cat:'fisika', explanation:'Tergantung posisi benda terhadap fokus.'},
+      {q:'Apa hubungan antara massa dan berat?', choices:['Berat = massa × percepatan gravitasi','Massa = berat × gravitasi','Tidak ada hubungan','Berat = massa + gravitasi'], a:0, cat:'fisika', explanation:'W = m × g.'},
+      {q:'Suhu nol mutlak (0 K) sama dengan berapa °C?', choices:['-273°C','0°C','100°C','-100°C'], a:0, cat:'fisika', explanation:'0 K ≈ -273.15 °C.'},
+
+      // Kimia
+      {q:'Ion positif disebut?', choices:['Anion','Kation','Isoton','Isobar'], a:1, cat:'kimia', explanation:'Kation bermuatan positif.'},
+      {q:'Apa pH air murni pada 25°C kira-kira?', choices:['pH 7 (netral)','pH 3 (asam)','pH 10 (basa)','pH 0 (sangat asam)'], a:0, cat:'kimia', explanation:'Air murni bersifat netral.'},
+      {q:'Reaksi pembakaran membutuhkan apa?', choices:['Oksigen, bahan bakar, dan panas','Hanya oksigen','Hanya bahan bakar','Hanya panas'], a:0, cat:'kimia', explanation:'Segitiga pembakaran memerlukan ketiganya.'},
+      {q:'Tanda zat basa pada kertas lakmus merah akan menjadi?', choices:['Merah','Biru','Tidak berubah','Hijau'], a:1, cat:'kimia', explanation:'Basa mengubah lakmus merah menjadi biru.'},
+      {q:'Nomor atom menunjukkan jumlah apa di atom?', choices:['Electron valensi','Jumlah proton','Jumlah neutron','Jumlah isotop'], a:1, cat:'kimia', explanation:'Nomor atom = jumlah proton.'},
+
+      // Tambahan campuran sederhana
+      {q:'Apa alat yang biasa digunakan mengukur massa benda di laboratorium?', choices:['Gelas ukur','Timbangan','Termometer','Pipet'], a:1, cat:'biologi', explanation:'Timbangan untuk massa.'},
+      {q:'Sistem pencernaan manusia dimulai dari?', choices:['Lambung','Mulut','Usus halus','Hati'], a:1, cat:'biologi', explanation:'Pencernaan dimulai di mulut dengan pengunyahan.'},
+      {q:'Gelombang bunyi tidak dapat merambat di?', choices:['Udara','Air','Ruang hampa','Padatan'], a:2, cat:'fisika', explanation:'Bunyi memerlukan medium.'},
+      {q:'Apa produk utama fotosintesis?', choices:['Oksigen dan glukosa','Karbon dioksida dan air','Amoniak','Nitrogen'], a:0, cat:'biologi', explanation:'Fotosintesis menghasilkan glukosa dan O2.'},
+      {q:'Nama gas yang paling banyak di atmosfer Bumi?', choices:['Oksigen','Nitrogen','Karbon dioksida','Argon'], a:1, cat:'kimia', explanation:'Nitrogen ≈ 78% atmosfer.'},
+
+      // Challenge (lebih sulit)
+      {q:'Hukum Newton kedua menyatakan bahwa F = m × a. Jika gaya tetap dan massa bertambah, maka? ', choices:['Percepatan meningkat','Percepatan berkurang','Percepatan tetap','Tidak bisa diprediksi'], a:1, cat:'fisika', explanation:'a = F/m jadi jika m↑ maka a↓.'},
+      {q:'Enzim mempercepat reaksi dengan menurunkan?', choices:['Konsentrasi reaktan','Energi aktivasi','Jumlah produk','pH lingkungan'], a:1, cat:'biologi', explanation:'Enzim menurunkan energi aktivasi.'},
+      {q:'Dalam tabel periodik, unsur yang memiliki sifat mirip biasanya berada di?', choices:['Baris (periode)','Kolom (golongan)','Diagonal','Acak'], a:1, cat:'kimia', explanation:'Golongan memiliki sifat kimia sejenis.'},
+      {q:'Apa yang dimaksud titik didih?', choices:['Suhu saat zat mulai mencair','Suhu saat tekanan uap sama dengan tekanan lingkungan','Suhu paling panas zat','Suhu saat zat menguap sepenuhnya'], a:1, cat:'kimia', explanation:'Titik didih ketika tekanan uap = tekanan lingkungan.'},
+      {q:'Fotosintesis terjadi terutama di bagian sel tumbuhan yaitu?', choices:['Mitokondria','Kloroplas','Inti sel','Vakuola'], a:1, cat:'biologi', explanation:'Kloroplas mengandung klorofil untuk fotosintesis.'},
+// Level Menengah–Lanjut     
+{q:'Gaya apung pada benda yang tercelup dalam fluida disebut?' , 
+ choices:['Gaya Archimedes','Gaya Coulomb','Gaya Lorentz','Gaya Normal'], 
+ a:0, cat:'fisika', level:'mid', 
+ explanation:'Gaya apung dijelaskan oleh Hukum Archimedes.'},
+
+{q:'Unsur berikut yang termasuk logam alkali adalah?', 
+ choices:['Kalsium','Natrium','Magnesium','Aluminium'], 
+ a:1, cat:'kimia', level:'mid', 
+ explanation:'Natrium (Na) adalah anggota golongan alkali.'},
+
+{q:'Cahaya berubah arah ketika melewati batas dua medium. Fenomena ini disebut?', 
+ choices:['Difraksi','Interferensi','Refraksi','Polarisasi'], 
+ a:2, cat:'fisika', level:'mid', 
+ explanation:'Refraksi adalah pembiasan cahaya.'},
+
+{q:'Organel yang berfungsi sebagai pusat kontrol sel adalah?', 
+ choices:['Ribosom','Inti sel (nukleus)','Lisosom','Aparatus Golgi'], 
+ a:1, cat:'biologi', level:'mid', 
+ explanation:'Nukleus mengatur seluruh aktivitas sel.'},
+
+{q:'Larutan yang memiliki pH < 7 disebut?', 
+ choices:['Basa','Asam','Netral','Buffer'], 
+ a:1, cat:'kimia', level:'mid', 
+ explanation:'pH < 7 berarti larutan bersifat asam.'},
+
+{q:'Gelombang elektromagnetik mana yang memiliki panjang gelombang paling pendek?', 
+ choices:['Sinar-X','Ultraviolet','Mikro','Inframerah'], 
+ a:0, cat:'fisika', level:'hard', 
+ explanation:'Sinar-X memiliki λ lebih pendek dari UV.'},
+
+{q:'Perubahan wujud dari padat langsung menjadi gas disebut?', 
+ choices:['Mengkristal','Mencair','Menyublim','Mengembun'], 
+ a:2, cat:'kimia', level:'mid', 
+ explanation:'Sublimasi adalah padat → gas tanpa cair.'},
+
+{q:'Proses pembentukan gamet melalui pembelahan sel khusus disebut?', 
+ choices:['Mitosis','Meiosis','Fusi','Fagositosis'], 
+ a:1, cat:'biologi', level:'hard', 
+ explanation:'Gamet dihasilkan melalui meiosis.'},
+
+{q:'Kecepatan reaksi kimia meningkat jika…', 
+ choices:['Temperatur diturunkan','Konsentrasi reaktan diturunkan','Luas permukaan reaktan ditingkatkan','Tekanan diturunkan'],
+ a:2, cat:'kimia', level:'hard',
+ explanation:'Semakin besar luas permukaan → tumbukan efektif meningkat.'}
+];
+
+    // State
+    let pool = [...QUESTIONS];
+    let currentIndex = -1;
+    let score = 0;
+    let highscore = parseInt(localStorage.getItem('ipa_highscore')||'0',10);
+    let tries = 3;
+    let timePerQuestion = 25; // default
+    let timer = null;
+    let timeLeft = 0;
+    let sessionLog = [];
+
+    // DOM
+    const qtext = document.getElementById('qtext');
+    const choicesEl = document.getElementById('choices');
+    const scoreEl = document.getElementById('score');
+    const hsEl = document.getElementById('hs');
+    const indexEl = document.getElementById('index');
+    const totalEl = document.getElementById('total');
+    const startBtn = document.getElementById('start');
+    const categorySel = document.getElementById('category');
+    const timeBar = document.getElementById('timeBar');
+    const timeText = document.getElementById('timeText');
+    const triesEl = document.getElementById('tries');
+    const hintBtn = document.getElementById('hint');
+    const skipBtn = document.getElementById('skip');
+    const nextBtn = document.getElementById('next');
+    const explainEl = document.getElementById('explain');
+    const resetHS = document.getElementById('resetHS');
+    const exportBtn = document.getElementById('export');
+
+    hsEl.textContent = highscore;
+
+    function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
+
+    function applyFilter(){
+      const cat = categorySel.value;
+      if(cat === 'all') pool = [...QUESTIONS]; else pool = QUESTIONS.filter(s=>s.cat===cat);
+      shuffle(pool);
+      totalEl.textContent = pool.length;
+      currentIndex = -1;
+    }
+
+    function updateUI(){
+      scoreEl.textContent = score;
+      hsEl.textContent = highscore;
+      triesEl.textContent = tries;
+      indexEl.textContent = Math.max(0, currentIndex+1);
+    }
+
+    function startTimer(){ clearInterval(timer); timeLeft = timePerQuestion; const total=timePerQuestion; timeBar.style.width='100%'; timeText.textContent=`${timeLeft}s`; timer = setInterval(()=>{ timeLeft-=1; const pct=Math.max(0,(timeLeft/total)*100); timeBar.style.width=pct+'%'; timeText.textContent=`${timeLeft}s`; if(timeLeft<=0){ clearInterval(timer); onTimeUp(); } },1000); }
+    function stopTimer(){ clearInterval(timer); }
+
+    function nextQuestion(){
+      explainEl.textContent='';
+      if(currentIndex+1 >= pool.length){ finishSession(); return; }
+      currentIndex++;
+      const item = pool[currentIndex];
+      qtext.textContent = item.q;
+      choicesEl.innerHTML = '';
+      item.choices.forEach((c, i)=>{
+        const d = document.createElement('div'); d.className='choice'; d.textContent = `${i+1}. ${c}`; d.tabIndex=0;
+        d.addEventListener('click', ()=>answer(i));
+        d.addEventListener('keydown', e=>{ if(e.key==='Enter') answer(i); });
+        choicesEl.appendChild(d);
+      });
+      updateUI();
+      startTimer();
+    }
+
+    function answer(i){
+      stopTimer();
+      const item = pool[currentIndex];
+      const choicesNodes = [...choicesEl.children];
+      choicesNodes.forEach((node, idx)=>{
+        if(idx===item.a) node.classList.add('correct');
+        if(idx===i && i!==item.a) node.classList.add('wrong');
+        node.style.pointerEvents='none';
+      });
+      const correct = i===item.a;
+      if(correct){ score += 10; explainEl.textContent = 'Benar! ' + (item.explanation || ''); }
+      else { score = Math.max(0, score-3); tries = Math.max(0, tries-1); explainEl.textContent = 'Salah. ' + (item.explanation || ''); }
+      sessionLog.push({q:item.q, selected: item.choices[i] || null, correct: item.choices[item.a], ok: correct});
+      updateHighscore();
+      updateUI();
+    }
+
+    function revealHint(){
+      // reveal first letter of answer and penalize
+      const item = pool[currentIndex];
+      if(!item) return; explainEl.textContent = 'Petunjuk: ' + item.choices[item.a][0] + '… (nilai -2)'; score = Math.max(0, score-2); updateUI();
+    }
+
+    function skip(){ stopTimer(); tries = Math.max(0, tries-1); explainEl.textContent='Soal dilewati.'; sessionLog.push({q:pool[currentIndex].q, selected:null, correct:pool[currentIndex].choices[pool[currentIndex].a], ok:false}); updateUI(); setTimeout(()=>nextQuestion(),700); }
+
+    function onTimeUp(){ explainEl.textContent='Waktu habis!'; tries = Math.max(0, tries-1); sessionLog.push({q:pool[currentIndex].q, selected:null, correct:pool[currentIndex].choices[pool[currentIndex].a], ok:false}); updateUI(); setTimeout(()=>nextQuestion(),900); }
+
+    function updateHighscore(){ if(score>highscore){ highscore=score; localStorage.setItem('ipa_highscore',String(highscore)); hsEl.textContent=highscore; } }
+
+    function finishSession(){ stopTimer(); qtext.textContent='Sesi selesai — skor akhir: '+score; choicesEl.innerHTML=''; explainEl.textContent='Terima kasih telah bermain! Lihat rincian dengan mengekspor hasil.'; }
+
+    // Controls
+    startBtn.addEventListener('click', ()=>{ applyFilter(); score=0; tries=3; updateUI(); nextQuestion(); });
+    hintBtn.addEventListener('click', ()=>{ revealHint(); });
+    skipBtn.addEventListener('click', ()=>{ skip(); });
+    nextBtn.addEventListener('click', ()=>{ stopTimer(); nextQuestion(); });
+    resetHS.addEventListener('click', ()=>{ localStorage.setItem('ipa_highscore','0'); highscore=0; hsEl.textContent='0'; });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      if(e.key>='1' && e.key<='4'){ const idx = parseInt(e.key,10)-1; const node = choicesEl.children[idx]; if(node) node.click(); }
+      if(e.key==='h') revealHint();
+      if(e.key==='n') { stopTimer(); nextQuestion(); }
+    });
+
+    // Export CSV
+    exportBtn.addEventListener('click', ()=>{
+      const rows = [['Pertanyaan','Jawaban Terpilih','Jawaban Benar','Benar?']];
+      sessionLog.forEach(r=> rows.push([r.q, r.selected||'', r.correct, r.ok?'YA':'TIDAK']));
+      const csv = rows.map(r=> r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download = 'hasil_ipa.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // Init UI
+    applyFilter(); updateUI();
+  </script>
+</body>
+</html>
+
+
